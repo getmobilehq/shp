@@ -1,6 +1,6 @@
 import React from 'react';
 import { useCustomer } from '../hooks/useCustomer';
-import { Package, ExternalLink, ShoppingCart, Smartphone, Wifi, Shield } from 'lucide-react';
+import { Package, ShoppingCart, Wifi, Shield } from 'lucide-react';
 
 export const ProductDetail: React.FC = () => {
   const { currentCustomer } = useCustomer();

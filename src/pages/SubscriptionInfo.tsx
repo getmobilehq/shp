@@ -15,7 +15,6 @@ import {
   Cloud,
   Bell,
   Users,
-  Shield,
   Zap
 } from 'lucide-react';
 import { SubscriptionChange } from '../types';

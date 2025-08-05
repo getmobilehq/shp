@@ -72,8 +72,10 @@ const getConnectivityLabel = (status: string) => {
 
 const getPlanColor = (plan: string) => {
   switch (plan.toLowerCase()) {
+    case 'nest aware plus':
     case 'pro':
       return 'bg-purple-100 text-purple-800 border-purple-200';
+    case 'nest aware':
     case 'plus':
       return 'bg-blue-100 text-blue-800 border-blue-200';
     case 'free':
@@ -85,12 +87,14 @@ const getPlanColor = (plan: string) => {
 
 const getPlanBenefits = (plan: string) => {
   switch (plan.toLowerCase()) {
+    case 'nest aware plus':
     case 'pro':
-      return 'All features + priority support + advanced analytics';
+      return '£10/month - 60 days event history + 24/7 recording + priority support';
+    case 'nest aware':
     case 'plus':
-      return 'Enhanced features + standard support + device management';
+      return '£5/month - 30 days event history + intelligent alerts + activity zones';
     case 'free':
-      return 'Basic features + community support';
+      return 'Basic live streaming + 3 hours event history + person alerts';
     default:
       return 'Plan benefits unavailable';
   }
@@ -332,7 +336,9 @@ export const CustomerOverview: React.FC = () => {
                 'inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold border-2',
                 getPlanColor(currentCustomer?.subscription?.plan || 'free')
               )}>
-                {(currentCustomer?.subscription?.plan || 'free').toUpperCase()}
+                {currentCustomer?.subscription?.plan === 'plus' ? 'NEST AWARE' : 
+                 currentCustomer?.subscription?.plan === 'pro' ? 'NEST AWARE PLUS' :
+                 (currentCustomer?.subscription?.plan || 'free').toUpperCase()}
               </div>
               <p className="text-sm text-gray-600 mt-2">Current Plan</p>
             </div>
