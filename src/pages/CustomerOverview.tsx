@@ -104,6 +104,7 @@ export const CustomerOverview: React.FC = () => {
   const { currentCustomer } = useCustomer();
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showConnectivityInfo, setShowConnectivityInfo] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -182,32 +183,65 @@ export const CustomerOverview: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Device Holdings & RSI Status</h2>
-            <div className="flex items-center space-x-2">
-              {offlineDevices.length > 0 && (
-                <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  {offlineDevices.length} Offline
-                </span>
+            <div className="flex items-center space-x-4">
+              {/* Toggle for connectivity info */}
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!showConnectivityInfo}
+                  onChange={(e) => setShowConnectivityInfo(!e.target.checked)}
+                  className="sr-only"
+                />
+                <div className="relative">
+                  <div className={clsx(
+                    "block w-10 h-6 rounded-full transition-colors",
+                    showConnectivityInfo ? "bg-gray-300" : "bg-blue-600"
+                  )}></div>
+                  <div className={clsx(
+                    "absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform",
+                    showConnectivityInfo ? "" : "translate-x-4"
+                  )}></div>
+                </div>
+                <span className="ml-2 text-sm text-gray-700">No Connectivity Info</span>
+              </label>
+              
+              {/* Connectivity badges - only show when toggle is off */}
+              {showConnectivityInfo && (
+                <div className="flex items-center space-x-2">
+                  {offlineDevices.length > 0 && (
+                    <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                      {offlineDevices.length} Offline
+                    </span>
+                  )}
+                  <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                    {onlineDevices.length} Online
+                  </span>
+                </div>
               )}
-              <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                {onlineDevices.length} Online
-              </span>
             </div>
           </div>
 
           {/* Device summary stats */}
-          <div className="grid grid-cols-3 gap-4 mb-4 p-3 bg-gray-50 rounded-lg">
+          <div className={clsx(
+            "grid gap-4 mb-4 p-3 bg-gray-50 rounded-lg",
+            showConnectivityInfo ? "grid-cols-3" : "grid-cols-1"
+          )}>
             <div className="text-center">
               <p className="text-2xl font-bold text-gray-900">{currentCustomer?.devices?.length || 0}</p>
               <p className="text-sm text-gray-600">Total Devices</p>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">{onlineDevices.length}</p>
-              <p className="text-sm text-gray-600">Online</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-red-600">{offlineDevices.length}</p>
-              <p className="text-sm text-gray-600">Offline</p>
-            </div>
+            {showConnectivityInfo && (
+              <>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-green-600">{onlineDevices.length}</p>
+                  <p className="text-sm text-gray-600">Online</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-red-600">{offlineDevices.length}</p>
+                  <p className="text-sm text-gray-600">Offline</p>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Device list */}
@@ -221,33 +255,35 @@ export const CustomerOverview: React.FC = () => {
                   key={device.id} 
                   className={clsx(
                     'flex items-center justify-between p-3 rounded-lg border',
-                    isOffline ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'
+                    showConnectivityInfo && isOffline ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'
                   )}
                 >
                   <div className="flex items-center space-x-3">
-                    <IconComponent className={clsx('w-5 h-5', isOffline ? 'text-red-600' : 'text-gray-600')} />
+                    <IconComponent className={clsx('w-5 h-5', showConnectivityInfo && isOffline ? 'text-red-600' : 'text-gray-600')} />
                     <div>
-                      <p className={clsx('font-medium', isOffline ? 'text-red-900' : 'text-gray-900')}>
+                      <p className={clsx('font-medium', showConnectivityInfo && isOffline ? 'text-red-900' : 'text-gray-900')}>
                         {device.name}
                       </p>
                       <p className="text-sm text-gray-500 capitalize">{device.type}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className={clsx(
-                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                      device.status === 'online' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    )}>
-                      {device.status === 'online' ? (
-                        <Wifi className="w-3 h-3 mr-1" />
-                      ) : (
-                        <WifiOff className="w-3 h-3 mr-1" />
-                      )}
-                      {device.status}
-                    </span>
-                    {device.rssi && (
+                    {showConnectivityInfo && (
+                      <span className={clsx(
+                        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                        device.status === 'online' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      )}>
+                        {device.status === 'online' ? (
+                          <Wifi className="w-3 h-3 mr-1" />
+                        ) : (
+                          <WifiOff className="w-3 h-3 mr-1" />
+                        )}
+                        {device.status}
+                      </span>
+                    )}
+                    {showConnectivityInfo && device.rssi && (
                       <span className="text-xs text-gray-500">
                         {device.rssi}dBm
                       </span>
@@ -409,9 +445,10 @@ export const CustomerOverview: React.FC = () => {
           </div>
         </div>
 
-        {/* Overall Connectivity Health */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Connectivity Health</h2>
+        {/* Overall Connectivity Health - Only show when connectivity info is enabled */}
+        {showConnectivityInfo ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Connectivity Health</h2>
           
           <div className="space-y-4">
             {/* Main status indicator */}
@@ -480,6 +517,10 @@ export const CustomerOverview: React.FC = () => {
             </div>
           </div>
         </div>
+        ) : (
+          // Placeholder div to maintain grid layout when connectivity card is hidden
+          <div></div>
+        )}
       </div>
     </div>
   );
