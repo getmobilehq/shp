@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useCustomer } from '../hooks/useCustomer';
 import { useAuth } from '../hooks/useAuth';
 import { 
@@ -15,10 +15,18 @@ import {
   Cloud,
   Bell,
   Users,
-  Zap
+  Zap,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Download,
+  Eye,
+  TrendingUp,
+  TrendingDown,
+  History
 } from 'lucide-react';
 import { SubscriptionChange } from '../types';
-import { format } from 'date-fns';
+import { format, subMonths, addDays } from 'date-fns';
 import clsx from 'clsx';
 
 interface SubscriptionChangeModalProps {
@@ -137,12 +145,214 @@ const SubscriptionChangeModal: React.FC<SubscriptionChangeModalProps> = ({
   );
 };
 
+interface SubscriptionHistoryEntry {
+  id: string;
+  period: string;
+  plan: string;
+  status: 'active' | 'downgraded' | 'upgraded' | 'cancelled';
+  amount: number;
+  startDate: string;
+  endDate: string;
+  invoiceNumber?: string;
+  paymentMethod?: string;
+  changes?: {
+    date: string;
+    from: string;
+    to: string;
+    reason: string;
+  }[];
+}
+
+interface HistoryDetailsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  entry: SubscriptionHistoryEntry | null;
+}
+
+const HistoryDetailsModal: React.FC<HistoryDetailsModalProps> = ({ isOpen, onClose, entry }) => {
+  if (!isOpen || !entry) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Subscription Details</h2>
+              <p className="text-sm text-gray-600">{entry.period}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6 overflow-y-auto max-h-[calc(80vh-180px)]">
+          <div className="space-y-6">
+            {/* Plan Information */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Plan Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Plan Type</p>
+                  <p className="font-medium text-gray-900">{entry.plan}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Status</p>
+                  <span className={clsx(
+                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                    entry.status === 'active' ? 'bg-green-100 text-green-800' :
+                    entry.status === 'upgraded' ? 'bg-blue-100 text-blue-800' :
+                    entry.status === 'downgraded' ? 'bg-orange-100 text-orange-800' :
+                    'bg-red-100 text-red-800'
+                  )}>
+                    {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Billing Period</p>
+                  <p className="font-medium text-gray-900">
+                    {format(new Date(entry.startDate), 'MMM dd')} - {format(new Date(entry.endDate), 'MMM dd, yyyy')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Amount</p>
+                  <p className="font-medium text-gray-900">£{entry.amount.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Billing Information */}
+            {entry.invoiceNumber && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Billing Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Invoice Number</p>
+                    <p className="font-medium text-gray-900">{entry.invoiceNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Payment Method</p>
+                    <p className="font-medium text-gray-900">{entry.paymentMethod || 'Card ending ****4242'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Changes History */}
+            {entry.changes && entry.changes.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Changes During Period</h3>
+                <div className="space-y-2">
+                  {entry.changes.map((change, idx) => (
+                    <div key={idx} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {change.from} → {change.to}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">{change.reason}</p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {format(new Date(change.date), 'MMM dd, yyyy')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex space-x-3 pt-4 border-t border-gray-200">
+              <button className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center">
+                <Download className="w-4 h-4 mr-2" />
+                Download Invoice
+              </button>
+              <button className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center">
+                <FileText className="w-4 h-4 mr-2" />
+                View Full Statement
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const SubscriptionInfo: React.FC = () => {
   const { currentCustomer } = useCustomer();
   const { user } = useAuth();
   const [showChangeModal, setShowChangeModal] = useState(false);
   const [targetPlan, setTargetPlan] = useState('');
   const [subscriptionHistory, setSubscriptionHistory] = useState<SubscriptionChange[]>([]);
+  const [expandedHistory, setExpandedHistory] = useState(false);
+  const [selectedHistoryEntry, setSelectedHistoryEntry] = useState<SubscriptionHistoryEntry | null>(null);
+  const [showHistoryDetails, setShowHistoryDetails] = useState(false);
+
+  // Generate mock subscription history for last 12 months
+  const mockSubscriptionHistory = useMemo((): SubscriptionHistoryEntry[] => {
+    const history: SubscriptionHistoryEntry[] = [];
+    const currentDate = new Date();
+    
+    for (let i = 0; i < 12; i++) {
+      const startDate = subMonths(currentDate, i + 1);
+      const endDate = subMonths(currentDate, i);
+      
+      // Determine plan and status based on month
+      let plan = 'Nest Aware Plus';
+      let status: SubscriptionHistoryEntry['status'] = 'active';
+      let amount = 10;
+      const changes: SubscriptionHistoryEntry['changes'] = [];
+      
+      if (i === 3) {
+        // Downgrade 3 months ago
+        status = 'downgraded';
+        plan = 'Nest Aware';
+        amount = 5;
+        changes.push({
+          date: addDays(startDate, 15).toISOString(),
+          from: 'Nest Aware Plus',
+          to: 'Nest Aware',
+          reason: 'Customer requested downgrade via self-service'
+        });
+      } else if (i === 8) {
+        // Upgrade 8 months ago
+        status = 'upgraded';
+        changes.push({
+          date: addDays(startDate, 10).toISOString(),
+          from: 'Nest Aware',
+          to: 'Nest Aware Plus',
+          reason: 'Customer upgraded for 24/7 recording feature'
+        });
+      } else if (i > 3 && i < 8) {
+        plan = 'Nest Aware';
+        amount = 5;
+      } else if (i >= 8) {
+        plan = 'Nest Aware';
+        amount = 5;
+      }
+      
+      history.push({
+        id: `sub-${i}`,
+        period: format(startDate, 'MMMM yyyy'),
+        plan,
+        status,
+        amount,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        invoiceNumber: `INV-2024${String(12 - i).padStart(2, '0')}-${Math.floor(Math.random() * 10000)}`,
+        paymentMethod: 'Card ending ****4242',
+        changes: changes.length > 0 ? changes : undefined
+      });
+    }
+    
+    return history;
+  }, []);
 
   if (!currentCustomer) {
     return (
@@ -458,6 +668,99 @@ export const SubscriptionInfo: React.FC = () => {
           </div>
         </div>
 
+        {/* Subscription History - Last 12 Months */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <History className="w-5 h-5 text-gray-600" />
+              <h2 className="text-lg font-semibold text-gray-900">Subscription History</h2>
+              <span className="text-sm text-gray-500">Last 12 Months</span>
+            </div>
+            <button
+              onClick={() => setExpandedHistory(!expandedHistory)}
+              className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+            >
+              <span>{expandedHistory ? 'Show Less' : 'Show All'}</span>
+              {expandedHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
+          
+          <div className="space-y-3">
+            {mockSubscriptionHistory.slice(0, expandedHistory ? undefined : 3).map((entry) => (
+              <div 
+                key={entry.id} 
+                className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                onClick={() => {
+                  setSelectedHistoryEntry(entry);
+                  setShowHistoryDetails(true);
+                }}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-gray-200">
+                    <CreditCard className="w-5 h-5 text-gray-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{entry.period}</p>
+                    <p className="text-sm text-gray-600">{entry.plan}</p>
+                  </div>
+                  {entry.status === 'upgraded' && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <TrendingUp className="w-3 h-3 mr-1" />
+                      Upgraded
+                    </span>
+                  )}
+                  {entry.status === 'downgraded' && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                      <TrendingDown className="w-3 h-3 mr-1" />
+                      Downgraded
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="text-right">
+                    <p className="font-semibold text-gray-900">£{entry.amount.toFixed(2)}</p>
+                    <p className="text-xs text-gray-500">per month</p>
+                  </div>
+                  <button 
+                    className="p-2 hover:bg-white rounded-lg transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedHistoryEntry(entry);
+                      setShowHistoryDetails(true);
+                    }}
+                  >
+                    <Eye className="w-4 h-4 text-gray-600" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Summary Statistics */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">
+                  £{mockSubscriptionHistory.reduce((sum, entry) => sum + entry.amount, 0).toFixed(2)}
+                </p>
+                <p className="text-sm text-gray-600">Total Spent (12 months)</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">
+                  {mockSubscriptionHistory.filter(e => e.status === 'upgraded' || e.status === 'downgraded').length}
+                </p>
+                <p className="text-sm text-gray-600">Plan Changes</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">
+                  £{(mockSubscriptionHistory.reduce((sum, entry) => sum + entry.amount, 0) / 12).toFixed(2)}
+                </p>
+                <p className="text-sm text-gray-600">Average Monthly</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Recent Changes */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 lg:col-span-2">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Changes</h2>
@@ -505,6 +808,12 @@ export const SubscriptionInfo: React.FC = () => {
         onConfirm={handleConfirmChange}
         currentPlan={currentCustomer.subscription.plan}
         targetPlan={targetPlan}
+      />
+
+      <HistoryDetailsModal
+        isOpen={showHistoryDetails}
+        onClose={() => setShowHistoryDetails(false)}
+        entry={selectedHistoryEntry}
       />
     </div>
   );
