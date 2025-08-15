@@ -179,10 +179,10 @@ export const CustomerOverview: React.FC = () => {
       {/* Four-section grid - designed to fit above the fold */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ height: 'calc(100vh - 280px)', minHeight: '600px' }}>
         
-        {/* Device Holdings & RSI Status */}
+        {/* Device Holdings & Online Status */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Device Holdings & RSI Status</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Device Holdings & Online Status</h2>
             <div className="flex items-center space-x-4">
               {/* Toggle for connectivity info */}
               <label className="flex items-center cursor-pointer">
